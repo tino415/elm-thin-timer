@@ -1,13 +1,15 @@
 port module Main exposing (..)
 
 import Browser
-import Html exposing (Html, button, div, text, ul, li, form, input)
-import Html.Attributes exposing (type_, value)
-import Html.Events exposing (onClick, onInput, onSubmit)
+import Html
+import Html.Styled exposing (Html, button, div, text, ul, li, form, input, toUnstyled)
+import Html.Styled.Attributes exposing (css, type_, value)
+import Html.Styled.Events exposing (onClick, onInput, onSubmit)
 
 import Time
 import Json.Decode exposing (Decoder, Value, field, string, map3, list, decodeValue)
 import Json.Decode.Extra exposing (datetime)
+import Css exposing (displayFlex)
 
 
 -- Ports
@@ -32,14 +34,14 @@ entryListDecoder =
           (field "id" string)
           (field "message" string)
           (field "at" datetime))
-          
+
 
 main : Program (Maybe User) Model Msg
 main =
     Browser.element
       { init = init
       , update = update
-      , view = view
+      , view = view >> toUnstyled
       , subscriptions = subscriptions
       }
 
@@ -155,10 +157,11 @@ view : Model -> Html Msg
 view model =
     case model.user of
         Nothing ->
-          div []
+          div
+            [css [displayFlex]]
             [ button [ onClick Login ] [ text "Login" ] ]
         Just user ->
-          div []
+          div [css [displayFlex]]
             [ div [] [text user.email]
             , viewFlash model.flash
             , viewProcessing model.processing

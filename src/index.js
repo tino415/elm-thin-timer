@@ -40,7 +40,7 @@ async function main() {
 
     app.ports.subscribeEntries.subscribe(_ => {
       console.log('subscribe')
-      const queryBuilder = query('entries').where({userId: getCurrentUserId()}).orderByDesc('at');
+      const queryBuilder = query('entries').where({userId: getCurrentUserId()}).orderByDesc('at').limit(10);
       const subscription = new DataSubscription(queryBuilder.query);
       subscription.createOnServer();
       subscription.subscribe(entries => {
