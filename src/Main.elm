@@ -141,10 +141,15 @@ update msg model =
         NewEntries result ->
             case result of
                 Ok entries ->
-                  ( { model | entries = entries }, Cmd.none )
+                  ( { model | entries = (sortEntries entries) }, Cmd.none )
                 _ ->
                   ( model, Cmd.none )
 
+sortEntries : List Entry -> List Entry
+sortEntries = List.sortWith compareEntriesAtDesc
+
+compareEntriesAtDesc : Entry -> Entry -> Order
+compareEntriesAtDesc e1 e2 = compare (Time.posixToMillis e2.at) (Time.posixToMillis e1.at)
 
 view : Model -> Html Msg
 view model =
@@ -164,6 +169,7 @@ view model =
             , button [ onClick Logout ] [ text "Logout" ]
             , ul [] (List.map (viewEntry model.processing) model.entries)
             ]
+
 viewProcessing : Bool -> Html Msg
 viewProcessing processing =
     if processing
@@ -238,4 +244,6 @@ subscriptions _ =
         , retrieveEntries (decodeValue entryListDecoder >> NewEntries)
         , createEntrySuccess CreateEntrySuccess
         , createEntryFail CreateEntryFail
+        , deleteEntrySuccess DeleteEntrySuccess
+        , deleteEntryFail DeleteEntryFail
         ]

@@ -28,6 +28,8 @@ async function main() {
       flags: user,
     });
 
+    console.log('ports', app.ports)
+
     app.ports.logout.subscribe(_ => {
       logout().then(() => app.ports.logedout.send({}))
     })
