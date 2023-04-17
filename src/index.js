@@ -7,7 +7,9 @@ import {
   loginWithRedirect,
   logout,
   DataSubscription,
-  query
+  query,
+  createRecord,
+  deleteRecord
 } from 'thin-backend';
 
 const $root = document.createElement('div');
@@ -43,6 +45,18 @@ async function main() {
         console.log('entries', entries)
         app.ports.retrieveEntries.send(entries)
       })
+    })
+
+    app.ports.createEntry.subscribe(message => {
+      createRecord('entries', {userId: getCurrentUserId(), message})
+        .then(() => app.ports.createEntrySuccess.send(null))
+        .catch(() => app.ports.createEntryFail.send(null))
+    })
+
+    app.ports.deleteEntry.subscribe(id => {
+      deleteRecord('entries', id)
+        .then(() => app.ports.deleteEntrySuccess.send(null))
+        .catch(() => app.ports.deleteEntryFail.send(null))
     })
   })
 }
