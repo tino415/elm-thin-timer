@@ -11,21 +11,31 @@ import Json.Decode exposing (Decoder, Value, field, string, map3, list, decodeVa
 import Json.Decode.Extra exposing (datetime)
 import Css exposing (displayFlex)
 
+import ThinBackend as T
+
 
 -- Ports
 
 port login : String -> Cmd msg
 port logout : String -> Cmd msg
 port createEntry : String -> Cmd msg
-port subscribeEntries : String -> Cmd msg
 port deleteEntry : String -> Cmd msg
 
 port logedout : (String -> msg) -> Sub msg
-port retrieveEntries : (Value -> msg) -> Sub msg
 port createEntrySuccess : (Value -> msg) -> Sub msg
 port createEntryFail : (Value -> msg) -> Sub msg
 port deleteEntrySuccess : (Value -> msg) -> Sub msg
 port deleteEntryFail : (Value -> msg) -> Sub msg
+
+subscribeEntriesQuery : String -> T.Query
+subscribeEntriesQuery userId =
+   (T.query "entries")
+        |> T.andWhereColumnEq "userId" (T.str userId)
+        |> T.limit 10
+        |> T.orderBy "at" T.DESC
+
+subscribeEntries : String -> Cmd msg
+subscribeEntries userId = T.subscribe (subscribeEntriesQuery userId)
 
 entryListDecoder : Decoder (List Entry)
 entryListDecoder =
@@ -34,7 +44,6 @@ entryListDecoder =
           (field "id" string)
           (field "message" string)
           (field "at" datetime))
-
 
 main : Program (Maybe User) Model Msg
 main =
@@ -46,7 +55,8 @@ main =
       }
 
 type alias User =
-    { email : String
+    { id : String
+    , email : String
     }
 
 type alias Entry =
@@ -79,7 +89,7 @@ init user =
 initSubscribeEntries user =
     case user of
         Nothing -> Cmd.none
-        Just _ -> subscribeEntries ""
+        Just usr -> subscribeEntries usr.id
 
 type Msg
     = Increment
@@ -95,7 +105,7 @@ type Msg
     | DeleteEntrySuccess Value
     | DeleteEntryFail Value
     | FlashHide
-    | NewEntries (Result Json.Decode.Error (List Entry))
+    | NewEntries (Maybe (List Entry))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -142,9 +152,9 @@ update msg model =
 
         NewEntries result ->
             case result of
-                Ok entries ->
+                Just entries ->
                   ( { model | entries = (sortEntries entries) }, Cmd.none )
-                _ ->
+                Nothing ->
                   ( model, Cmd.none )
 
 sortEntries : List Entry -> List Entry
@@ -244,7 +254,7 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
         [ logedout Logedout
-        , retrieveEntries (decodeValue entryListDecoder >> NewEntries)
+        , T.subscribeResult entryListDecoder NewEntries 
         , createEntrySuccess CreateEntrySuccess
         , createEntryFail CreateEntryFail
         , deleteEntrySuccess DeleteEntrySuccess

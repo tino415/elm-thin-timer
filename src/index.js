@@ -12,6 +12,8 @@ import {
   deleteRecord
 } from 'thin-backend';
 
+import {init} from './thin-backend';
+
 const $root = document.createElement('div');
 document.body.appendChild($root);
 
@@ -28,6 +30,8 @@ async function main() {
       flags: user,
     });
 
+    init(app)
+
     console.log('ports', app.ports)
 
     app.ports.logout.subscribe(_ => {
@@ -36,17 +40,6 @@ async function main() {
 
     app.ports.login.subscribe(_ => {
       loginWithRedirect()
-    })
-
-    app.ports.subscribeEntries.subscribe(_ => {
-      console.log('subscribe')
-      const queryBuilder = query('entries').where({userId: getCurrentUserId()}).orderByDesc('at').limit(10);
-      const subscription = new DataSubscription(queryBuilder.query);
-      subscription.createOnServer();
-      subscription.subscribe(entries => {
-        console.log('entries', entries)
-        app.ports.retrieveEntries.send(entries)
-      })
     })
 
     app.ports.createEntry.subscribe(message => {
