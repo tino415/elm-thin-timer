@@ -190,4 +190,5 @@ subscriptions _ =
         , T.subscribeResult Entry.listDecoder NewEntries
         , T.createRecordResult Entry.decoder CreateEntryResult
         , T.deleteRecordResult DeleteEntryResult
+        , Time.every 60000 SetTime
         ]
