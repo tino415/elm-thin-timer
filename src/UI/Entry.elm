@@ -9,27 +9,42 @@ import UI
 import Entry
 import UI.DateTime
 
-list : Bool -> (String -> msg) -> List Entry.Entry -> H.Html msg
-list isProcessing deleteMsg entries =
+list : Bool -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
+list isProcessing deleteMsg redoMsg entries =
     H.ul []
-        (List.map (listItem isProcessing deleteMsg) entries)
+        (List.map (listItem isProcessing deleteMsg redoMsg) entries)
 
-listItem : Bool -> (String -> msg) -> Entry.Entry -> H.Html msg
-listItem isProcessing deleteMsg entry =
+listItem : Bool -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> Entry.Entry -> H.Html msg
+listItem isProcessing deleteMsg redoMsg entry =
     H.li
         [
           A.css
             [ Css.listStyle Css.none
             , Css.displayFlex
-            , Css.justifyContent Css.spaceBetween
-            , Css.padding (Css.em 0.5) (Css.em 1)
+            , Css.padding2 (Css.em 0.5) (Css.em 1)
             ]
         ]
-        [ H.div [] [H.text entry.message]
-        , H.div [] [H.text (UI.DateTime.dateTime entry.at)]
+        [ H.div
+            [ A.css
+               [ Css.flexGrow (Css.num 1)
+               , Css.padding2 (Css.em 0.5) (Css.em 1)
+               ]
+            ]
+            [ H.text entry.message ]
+        , H.div
+            [ A.css
+               [ Css.padding2 (Css.em 0.5) (Css.em 1)
+               ]
+            ]
+            [ H.text (UI.DateTime.dateTime entry.at) ]
         , if isProcessing
             then UI.empty
-            else UI.button (deleteMsg entry.id) "-"
+            else
+              H.div
+                []
+                [ UI.button (redoMsg entry) ">"
+                , UI.button (deleteMsg entry) "-"
+                ]
         ]
 
 createForm : Bool -> msg -> (String -> msg) -> String -> H.Html msg

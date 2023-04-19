@@ -61,7 +61,8 @@ type Msg
     | SetMessage String
     | CreateEntry
     | CreateEntryResult (Maybe Entry.Entry)
-    | DeleteEntry String
+    | RedoEntry Entry.Entry
+    | DeleteEntry Entry.Entry
     | DeleteEntryResult (Maybe String)
     | FlashHide
     | NewEntries (Maybe (List Entry.Entry))
@@ -86,6 +87,11 @@ update msg model =
             , T.createRecord "entries" (Entry.encodeNew model.message)
             )
 
+        RedoEntry entry ->
+            ( { model | processing = True }
+            , T.createRecord "entries" (Entry.encodeNew entry.message)
+            )
+
         CreateEntryResult (Just _) ->
             ( { model | flash = Just (UI.Success, "Entry created"), processing = False }
             , Cmd.none
@@ -96,9 +102,9 @@ update msg model =
             , Cmd.none
             )
 
-        DeleteEntry id ->
+        DeleteEntry entry ->
             ( { model | processing = True }
-            , T.deleteRecord "entries" id
+            , T.deleteRecord "entries" entry.id
             )
 
         DeleteEntryResult (Just _) ->
@@ -115,7 +121,7 @@ update msg model =
             ( { model | flash = Nothing }, Cmd.none )
 
         NewEntries (Just entries) ->
-            ( { model | entries = (Entry.sortByAtDESC entries) }, Cmd.none )
+            ( { model | entries = (List.take 10 (Entry.sortByAtDESC entries)) }, Cmd.none )
 
         NewEntries Nothing ->
             ( model, Cmd.none )
@@ -132,7 +138,7 @@ view model =
       , UI.maybeFlash model.flash FlashHide
       , UI.processing model.processing
       , UI.Entry.createForm isActionable CreateEntry SetMessage model.message
-      , UI.Entry.list model.processing DeleteEntry model.entries
+      , UI.Entry.list model.processing DeleteEntry RedoEntry model.entries
       ]
 
 subscriptions : Model -> Sub Msg
