@@ -122,19 +122,18 @@ update msg model =
 
 view : Model -> H.Html Msg
 view model =
-  UI.layout
-    [ UI.header
-      [ UI.User.header model.user Login Logout
+  let
+    isActionable = model.processing || model.user == Nothing
+  in
+    UI.layout
+      [ UI.header
+        [ UI.User.header model.user Login Logout
+        ]
+      , UI.maybeFlash model.flash FlashHide
+      , UI.processing model.processing
+      , UI.Entry.createForm isActionable CreateEntry SetMessage model.message
+      , UI.Entry.list model.processing DeleteEntry model.entries
       ]
-    , UI.maybeFlash model.flash FlashHide
-    , UI.processing model.processing
-    , UI.Entry.createForm
-        (model.processing || model.user == Nothing)
-        CreateEntry
-        SetMessage
-        model.message
-    , UI.Entry.list model.processing DeleteEntry model.entries
-    ]
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =

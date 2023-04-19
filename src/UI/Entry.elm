@@ -16,7 +16,15 @@ list isProcessing deleteMsg entries =
 
 listItem : Bool -> (String -> msg) -> Entry.Entry -> H.Html msg
 listItem isProcessing deleteMsg entry =
-    H.li []
+    H.li
+        [
+          A.css
+            [ Css.listStyle Css.none
+            , Css.displayFlex
+            , Css.justifyContent Css.spaceBetween
+            , Css.padding (Css.em 0.5) (Css.em 1)
+            ]
+        ]
         [ H.div [] [H.text entry.message]
         , H.div [] [H.text (UI.DateTime.dateTime entry.at)]
         , if isProcessing
