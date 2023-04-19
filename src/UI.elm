@@ -60,6 +60,21 @@ textInput event value =
       ]
       []
 
+dateTimeInput : (String -> msg) -> String -> H.Html msg
+dateTimeInput event value =
+    H.input
+      [ A.type_ "datetime-local"
+      , A.value value
+      , E.onInput event
+      , A.css
+         [ Css.borderWidth (Css.px 1)
+         , Css.padding2 (Css.em 0.5) (Css.em 1)
+         , Css.borderColor colors.info
+         , Css.borderStyle Css.solid
+         ]
+      ]
+      []
+
 layout : List (H.Html msg) -> H.Html msg
 layout body =
     H.div [

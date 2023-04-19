@@ -4,6 +4,8 @@ import Time
 import Json.Decode as D
 import Json.Decode.Extra as DE
 import Json.Encode as E
+import Iso8601
+import Task
 
 import ThinBackend as T
 
@@ -23,8 +25,12 @@ decoder =
 listDecoder : D.Decoder (List Entry)
 listDecoder = D.list decoder
 
-encodeNew : String -> E.Value
-encodeNew message = E.object [ ("message", E.string message ) ]
+encodeNew : String -> Time.Posix -> E.Value
+encodeNew message at =
+    E.object
+      [ ( "message", E.string message )
+      , ( "at", E.string (Iso8601.fromTime at) )
+      ]
 
 sortByAtDESC : List Entry -> List Entry
 sortByAtDESC = List.sortWith compareByAtDESC

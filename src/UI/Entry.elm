@@ -47,10 +47,15 @@ listItem isProcessing deleteMsg redoMsg entry =
                 ]
         ]
 
-createForm : Bool -> msg -> (String -> msg) -> String -> H.Html msg
-createForm isHidden submitMsg updateMsg value =
+createForm : Bool -> msg -> (String -> msg) -> String -> (String -> msg) -> String -> H.Html msg
+createForm isHidden submitMsg updateMsg value updateDatetimeMsg dateTimeValue =
     if isHidden
         then UI.empty
-        else UI.form submitMsg [ UI.textInput updateMsg value ]
+        else
+            UI.form
+                submitMsg
+                [ UI.textInput updateMsg value
+                , UI.dateTimeInput updateDatetimeMsg dateTimeValue
+                ]
 
 

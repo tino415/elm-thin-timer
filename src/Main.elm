@@ -4,8 +4,11 @@ import Browser
 import Html.Styled as H
 
 import Time
+import Task
+import Iso8601
 import Json.Decode as D
 import Json.Encode as E
+import Html.Utils as HU
 
 import ThinBackend as T
 import UI
@@ -26,6 +29,8 @@ main =
 type alias Model =
     { user : Maybe User.User
     , message : String
+    , dateTime : Maybe Time.Posix
+    , dateTimeString : String
     , flash : Maybe UI.Flash
     , processing : Bool
     , entries : List Entry.Entry
@@ -39,10 +44,12 @@ init userValue =
       ( { user = maybeUser
         , entries = []
         , message = ""
+        , dateTime = Nothing
+        , dateTimeString = ""
         , processing = False
         , flash = Nothing
         }
-      , initSubscribeEntries maybeUser
+      , Cmd.batch [initSubscribeEntries maybeUser, Task.perform SetTime Time.now]
       )
 
 initSubscribeEntries : Maybe User.User -> Cmd msg
@@ -59,6 +66,8 @@ type Msg
     | Logout
     | Logedout
     | SetMessage String
+    | SetDateTime String
+    | SetTime Time.Posix
     | CreateEntry
     | CreateEntryResult (Maybe Entry.Entry)
     | RedoEntry Entry.Entry
@@ -82,15 +91,39 @@ update msg model =
         SetMessage message ->
             ( { model | message = message }, Cmd.none )
 
-        CreateEntry ->
-            ( { model | message = "", processing = True }
-            , T.createRecord "entries" (Entry.encodeNew model.message)
+        SetTime dateTime ->
+            ( { model | dateTime = Just dateTime, dateTimeString = HU.timeToString dateTime }
+            , Cmd.none
             )
 
+        SetDateTime dateTimeString ->
+            case Iso8601.toTime dateTimeString of
+                Ok dateTime ->
+                  ( { model | dateTime = Just dateTime, dateTimeString = dateTimeString }
+                  , Cmd.none
+                  )
+                Err _ ->
+                  ( { model | dateTimeString = "" }, Cmd.none )
+
+        CreateEntry ->
+            case model.dateTime of
+                Just dateTime ->
+                  ( { model | message = "", dateTimeString = "", processing = True }
+                  , T.createRecord "entries" (Entry.encodeNew model.message dateTime)
+                  )
+                Nothing ->
+                  ( model, Cmd.none )
+
         RedoEntry entry ->
-            ( { model | processing = True }
-            , T.createRecord "entries" (Entry.encodeNew entry.message)
-            )
+            case model.dateTime of
+                Just dateTime ->
+                  ( { model | processing = True }
+                  , T.createRecord "entries" (Entry.encodeNew entry.message dateTime)
+                  )
+                Nothing ->
+                  ( { model | flash = Just (UI.Error, "Missing datetime") }
+                  , Cmd.none
+                  )
 
         CreateEntryResult (Just _) ->
             ( { model | flash = Just (UI.Success, "Entry created"), processing = False }
@@ -121,7 +154,9 @@ update msg model =
             ( { model | flash = Nothing }, Cmd.none )
 
         NewEntries (Just entries) ->
-            ( { model | entries = (List.take 10 (Entry.sortByAtDESC entries)) }, Cmd.none )
+            ( { model | entries = (List.take 10 (Entry.sortByAtDESC entries)) }
+            , Cmd.none
+            )
 
         NewEntries Nothing ->
             ( model, Cmd.none )
@@ -137,9 +172,16 @@ view model =
         ]
       , UI.maybeFlash model.flash FlashHide
       , UI.processing model.processing
-      , UI.Entry.createForm isActionable CreateEntry SetMessage model.message
+      , UI.Entry.createForm isActionable CreateEntry
+          SetMessage model.message
+          SetDateTime model.dateTimeString
       , UI.Entry.list model.processing DeleteEntry RedoEntry model.entries
       ]
+
+viewDefaultDatetime maybeDateTime =
+    case maybeDateTime of
+        Nothing -> ""
+        Just dateTime -> Iso8601.fromTime dateTime
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
