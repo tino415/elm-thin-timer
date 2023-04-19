@@ -3,6 +3,8 @@ port module ThinBackend exposing (..)
 import Json.Encode as E
 import Json.Decode as D
 
+type Void = Void
+
 type Direction = ASC | DESC
 
 type Value = IntValue Int | StringValue String
@@ -65,13 +67,49 @@ subscribe : Query -> Cmd msg
 subscribe qr = subscribePort (encodeQuery qr)
 
 subscribeResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
-subscribeResult decoder callback = subscribePortResult (maybeDecode decoder callback)
+subscribeResult decoder callback = subscribeResultPort (maybeDecode decoder callback)
 
 port subscribePort : D.Value -> Cmd msg
-port subscribePortResult : (D.Value -> msg) -> Sub msg
+port subscribeResultPort : (D.Value -> msg) -> Sub msg
 
-port createRecord : D.Value -> Cmd msg
-port createRecordResult : (D.Value -> msg) -> Sub msg
+createRecord : String -> E.Value -> Cmd msg
+createRecord collection value = createRecordPort (encodeCreate collection value)
+
+createRecordResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
+createRecordResult decoder callback = createRecordResultPort (maybeDecode decoder callback)
+
+port createRecordPort : D.Value -> Cmd msg
+port createRecordResultPort : (D.Value -> msg) -> Sub msg
+
+deleteRecord : String -> String -> Cmd msg
+deleteRecord collection id = deleteRecordPort (encodeDelete collection id)
+
+deleteRecordResult : (Maybe String -> msg) -> Sub msg
+deleteRecordResult callback = deleteRecordResultPort (decodeDelete callback)
+
+port deleteRecordPort : D.Value -> Cmd msg
+port deleteRecordResultPort : (D.Value -> msg) -> Sub msg
+
+login : Cmd msg
+login = loginPort E.null
+
+port loginPort : E.Value -> Cmd msg
+
+logout : Cmd msg
+logout = logoutPort E.null
+
+port logoutPort : E.Value -> Cmd msg
+
+logedout : msg -> Sub msg
+logedout callback = logedoutPort (\_ -> callback)
+
+port logedoutPort : (D.Value -> msg) -> Sub msg
+
+decodeDelete : (Maybe String -> msg) -> D.Value -> msg
+decodeDelete callback value =
+    case D.decodeValue D.string value of
+        Ok id -> callback (Just id)
+        Err _ -> callback Nothing
 
 encodeQuery : Query -> E.Value
 encodeQuery qr =
@@ -113,3 +151,17 @@ encodeValue vl =
     case vl of
         IntValue val -> E.int val
         StringValue val -> E.string val
+
+encodeCreate : String -> E.Value -> E.Value
+encodeCreate collection record =
+    E.object
+        [ ( "collection", E.string collection )
+        , ( "record", record )
+        ]
+
+encodeDelete : String -> String -> E.Value
+encodeDelete collection id =
+    E.object
+        [ ( "collection", E.string collection )
+        , ( "id", E.string id )
+        ]

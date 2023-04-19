@@ -1,7 +1,6 @@
-port module Main exposing (..)
+module Main exposing (main)
 
 import Browser
-import Html
 import Html.Styled exposing (Html, button, div, text, ul, li, form, input, toUnstyled)
 import Html.Styled.Attributes exposing (css, type_, value)
 import Html.Styled.Events exposing (onClick, onInput, onSubmit)
@@ -9,23 +8,10 @@ import Html.Styled.Events exposing (onClick, onInput, onSubmit)
 import Time
 import Json.Decode exposing (Decoder, Value, field, string, map3, list, decodeValue)
 import Json.Decode.Extra exposing (datetime)
+import Json.Encode as E
 import Css exposing (displayFlex)
 
 import ThinBackend as T
-
-
--- Ports
-
-port login : String -> Cmd msg
-port logout : String -> Cmd msg
-port createEntry : String -> Cmd msg
-port deleteEntry : String -> Cmd msg
-
-port logedout : (String -> msg) -> Sub msg
-port createEntrySuccess : (Value -> msg) -> Sub msg
-port createEntryFail : (Value -> msg) -> Sub msg
-port deleteEntrySuccess : (Value -> msg) -> Sub msg
-port deleteEntryFail : (Value -> msg) -> Sub msg
 
 subscribeEntriesQuery : String -> T.Query
 subscribeEntriesQuery userId =
@@ -38,12 +24,17 @@ subscribeEntries : String -> Cmd msg
 subscribeEntries userId = T.subscribe (subscribeEntriesQuery userId)
 
 entryListDecoder : Decoder (List Entry)
-entryListDecoder =
-    list
-      (map3 Entry
-          (field "id" string)
-          (field "message" string)
-          (field "at" datetime))
+entryListDecoder = list entryDecoder
+
+entryDecoder : Decoder Entry
+entryDecoder =
+  map3 Entry
+      (field "id" string)
+      (field "message" string)
+      (field "at" datetime)
+
+encodeNewEntry : String -> E.Value
+encodeNewEntry message = E.object [ ("message", E.string message ) ]
 
 main : Program (Maybe User) Model Msg
 main =
@@ -66,8 +57,7 @@ type alias Entry =
     }
 
 type alias Model =
-    { counter : Int
-    , user : Maybe User
+    { user : Maybe User
     , message : String
     , flash : Maybe String
     , processing : Bool
@@ -76,8 +66,7 @@ type alias Model =
 
 init : Maybe User -> ( Model, Cmd Msg )
 init user =
-    ( { counter = 0
-      , user = user
+    ( { user = user
       , entries = []
       , message = ""
       , processing = False
@@ -86,65 +75,56 @@ init user =
     , initSubscribeEntries user
     )
 
+initSubscribeEntries : Maybe User -> Cmd msg
 initSubscribeEntries user =
     case user of
         Nothing -> Cmd.none
         Just usr -> subscribeEntries usr.id
 
 type Msg
-    = Increment
-    | Decrement
-    | Login
+    = Login
     | Logout
-    | Logedout String
+    | Logedout
     | SetMessage String
     | CreateEntry
-    | CreateEntrySuccess Value
-    | CreateEntryFail Value
+    | CreateEntryResult (Maybe Entry)
     | DeleteEntry String
-    | DeleteEntrySuccess Value
-    | DeleteEntryFail Value
+    | DeleteEntryResult (Maybe String)
     | FlashHide
     | NewEntries (Maybe (List Entry))
-
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Increment ->
-            ( { model | counter = model.counter + 1 }, Cmd.none )
-
-        Decrement ->
-            ( { model | counter = model.counter - 1 }, Cmd.none )
-
         Login ->
-            ( model, login "Test" )
+            ( model, T.login )
 
         Logout ->
-            ( model, logout "Test" )
+            ( model, T.logout )
 
-        Logedout _ ->
+        Logedout ->
             ( { model | user = Nothing }, Cmd.none )
 
         SetMessage message ->
             ( { model | message = message }, Cmd.none )
 
         CreateEntry ->
-            ( { model | message = "", processing = True }, createEntry model.message )
+            ( { model | message = "", processing = True },
+                  T.createRecord "entries" (encodeNewEntry model.message) )
 
-        CreateEntrySuccess _ ->
+        CreateEntryResult (Just _) ->
             ( { model | flash = Just "Entry created", processing = False }, Cmd.none )
 
-        CreateEntryFail _ ->
+        CreateEntryResult Nothing ->
             ( { model | flash = Just "Entry creation failed", processing = False }, Cmd.none )
 
         DeleteEntry id ->
-            ( { model | processing = True }, deleteEntry id )
+            ( { model | processing = True }, T.deleteRecord "entries" id )
 
-        DeleteEntrySuccess _ ->
+        DeleteEntryResult (Just _) ->
             ( { model | flash = Just "Entry deleted", processing = False }, Cmd.none )
 
-        DeleteEntryFail _ ->
+        DeleteEntryResult Nothing ->
             ( { model | flash = Just "Failed to delete entry.", processing = False }, Cmd.none )
 
         FlashHide ->
@@ -167,21 +147,26 @@ view : Model -> Html Msg
 view model =
     case model.user of
         Nothing ->
-          div
-            [css [displayFlex]]
-            [ button [ onClick Login ] [ text "Login" ] ]
+          layout [ button [ onClick Login ] [ text "Login" ] ]
         Just user ->
-          div [css [displayFlex]]
+          layout
             [ div [] [text user.email]
             , viewFlash model.flash
             , viewProcessing model.processing
             , viewCreateForm model
-            , button [ onClick Decrement ] [ text "-" ]
-            , div [] [ text (String.fromInt model.counter) ]
-            , button [ onClick Increment ] [ text "+" ]
             , button [ onClick Logout ] [ text "Logout" ]
             , ul [] (List.map (viewEntry model.processing) model.entries)
             ]
+
+layout : List (Html Msg) -> Html Msg
+layout body =
+    div [
+     css
+     [ Css.displayFlex
+     , Css.flexDirection Css.column
+     , Css.maxWidth (Css.px 900)
+     , Css.margin2 (Css.px 0) Css.auto
+     ]] body
 
 viewProcessing : Bool -> Html Msg
 viewProcessing processing =
@@ -227,6 +212,7 @@ viewDateTime time =
     viewZeroPaddet (Time.toMinute Time.utc time) ++ ":" ++
     viewZeroPaddet (Time.toSecond Time.utc time)
 
+viewMonth : Time.Month -> String
 viewMonth month =
     case month of
       Time.Jan -> "01"
@@ -242,6 +228,7 @@ viewMonth month =
       Time.Nov -> "11"
       Time.Dec -> "12"
 
+viewZeroPaddet : Int -> String
 viewZeroPaddet number =
   let
       strnum = String.fromInt number
@@ -253,10 +240,8 @@ viewZeroPaddet number =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ logedout Logedout
-        , T.subscribeResult entryListDecoder NewEntries 
-        , createEntrySuccess CreateEntrySuccess
-        , createEntryFail CreateEntryFail
-        , deleteEntrySuccess DeleteEntrySuccess
-        , deleteEntryFail DeleteEntryFail
+        [ T.logedout Logedout
+        , T.subscribeResult entryListDecoder NewEntries
+        , T.createRecordResult entryDecoder CreateEntryResult
+        , T.deleteRecordResult DeleteEntryResult
         ]

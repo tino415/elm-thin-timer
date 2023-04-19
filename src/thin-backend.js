@@ -1,9 +1,29 @@
 import {
   DataSubscription,
-  query
+  query,
+  createRecord,
+  deleteRecord,
+  loginWithRedirect,
+  logout
 } from 'thin-backend';
 
 export function init(app) {
+  if ("loginPort" in app.ports) {
+    app.ports.loginPort.subscribe(_ => {
+      loginWithRedirect()
+    })
+  }
+
+  if ("logoutPort" in app.ports) {
+    app.ports.logoutPort.subscribe(_ => {
+      logout().then(() => {
+        if ("logedoutPort" in app.ports) {
+          app.ports.logedoutPort.send({})
+        }
+      })
+    })
+  }
+
   if ("listPort" in app.ports) {
     app.ports.listPort.subscribe(q => {
       const query = translateQuery(q)
@@ -20,10 +40,44 @@ export function init(app) {
       const subscription = new DataSubscription(queryBuilder.query);
       subscription.createOnServer();
       subscription.subscribe(items => {
-        if ("subscribePortResult" in app.ports) {
-          app.ports.subscribePortResult.send(items)
+        if ("subscribeResultPort" in app.ports) {
+          console.log('subscribe items', items)
+          app.ports.subscribeResultPort.send(items)
         }
       })
+    })
+  }
+
+  if ("createRecordPort" in app.ports) {
+    app.ports.createRecordPort.subscribe(r => {
+      createRecord(r.collection, r.record)
+        .then(r => {
+          if ("createRecordResultPort" in app.ports) {
+            app.ports.createRecordResultPort.send(r)
+          }
+        })
+        .catch(e => {
+          if ("createRecordResultPort" in app.ports) {
+            app.ports.createRecordResultPort.send(null)
+          }
+        })
+    })
+  }
+
+  if ("deleteRecordPort" in app.ports) {
+    app.ports.deleteRecordPort.subscribe(r => {
+      deleteRecord(r.collection, r.id)
+        .then(_ => {
+          if ("deleteRecordResultPort" in app.ports) {
+            app.ports.deleteRecordResultPort.send(r.id)
+          }
+        })
+        .catch(e => {
+          console.log(e)
+          if ("deleteRecordResultPort" in app.ports) {
+            app.ports.deleteRecordResultPort.send(null)
+          }
+        })
     })
   }
 }
