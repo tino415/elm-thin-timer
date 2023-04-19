@@ -11,6 +11,17 @@ dateTime time =
     zeroPaddet (Time.toMinute Time.utc time) ++ ":" ++
     zeroPaddet (Time.toSecond Time.utc time)
 
+diff : Time.Posix -> Time.Posix -> Int
+diff t1 t2 = Time.posixToMillis t1 - Time.posixToMillis t2
+
+printDiff : Int -> String
+printDiff millis =
+    let
+      minutes = modBy 60 (millis // 60000)
+      hours = millis // 3600000
+    in
+      zeroPaddet hours ++ ":" ++ zeroPaddet minutes
+
 zeroPaddedMonth : Time.Month -> String
 zeroPaddedMonth month =
     case month of

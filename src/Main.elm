@@ -33,6 +33,7 @@ type alias Model =
     , dateTimeString : String
     , flash : Maybe UI.Flash
     , processing : Bool
+    , currentEntry : Maybe Entry.Entry
     , entries : List Entry.Entry
     }
 
@@ -42,6 +43,7 @@ init userValue =
         maybeUser = User.maybeDecode userValue
     in 
       ( { user = maybeUser
+        , currentEntry = Nothing
         , entries = []
         , message = ""
         , dateTime = Nothing
@@ -154,12 +156,24 @@ update msg model =
             ( { model | flash = Nothing }, Cmd.none )
 
         NewEntries (Just entries) ->
-            ( { model | entries = (List.take 10 (Entry.sortByAtDESC entries)) }
-            , Cmd.none
-            )
+            let
+                sortedEntries = Entry.sortByAtDESC entries
+            in
+              ( { model
+                | currentEntry = List.head sortedEntries
+                , entries = postProcessEntries sortedEntries }
+              , Cmd.none
+              )
 
         NewEntries Nothing ->
             ( model, Cmd.none )
+
+postProcessEntries : List Entry.Entry -> List Entry.Entry
+postProcessEntries entries =
+    entries
+    |> List.tail
+    |> Maybe.withDefault []
+    |> List.take 10
 
 view : Model -> H.Html Msg
 view model =
@@ -175,6 +189,7 @@ view model =
       , UI.Entry.createForm isActionable CreateEntry
           SetMessage model.message
           SetDateTime model.dateTimeString
+      , UI.Entry.current model.currentEntry model.dateTime
       , UI.Entry.list model.processing DeleteEntry RedoEntry model.entries
       ]
 

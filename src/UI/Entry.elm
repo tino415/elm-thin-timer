@@ -1,5 +1,7 @@
 module UI.Entry exposing (..)
 
+import Time
+
 import Html.Styled as H
 import Html.Styled.Attributes as A
 import Html.Styled.Events as E
@@ -8,6 +10,23 @@ import Css
 import UI
 import Entry
 import UI.DateTime
+
+current : Maybe Entry.Entry -> Maybe Time.Posix -> H.Html msg
+current maybeEntry maybeNow =
+    case (maybeEntry, maybeNow) of
+        (Just entry, Just now) ->
+          H.div
+            []
+            [ H.text entry.message
+            , let
+                  diff = UI.DateTime.diff now entry.at
+              in
+                  H.div []
+                      [ H.div [] [H.text ("Started at: " ++ (UI.DateTime.dateTime entry.at))]
+                      , H.div [] [H.text ("Running for " ++ (UI.DateTime.printDiff diff))]
+                      ]
+            ]
+        _ -> UI.empty
 
 list : Bool -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
 list isProcessing deleteMsg redoMsg entries =

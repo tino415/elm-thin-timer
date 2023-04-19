@@ -85,8 +85,6 @@ export function init(app) {
 function translateQuery(q) {
   const c = query(q.from)
 
-  console.log('c', c, 'q', q)
-
   if (q.limit) {
     c.limit(q.limit)
   }
