@@ -8,24 +8,15 @@
     "dotenv": "^10.0.0",
     "elm": "*",
     "esbuild": "^0.13.1",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "thin-backend": ">=0.10.1",
-    "thin-backend-react": "*",
-    "typescript": "^4.5.3"
+    "thin-backend": ">=0.10.1"
   },
   "author": "",
   "license": "ISC",
   "scripts": {
     "dev": "node server.js",
-    "build": "./node_modules/.bin/esbuild --define:process.env.NODE_ENV=\\\"production\\\" --define:process.env.BACKEND_URL=\\\"$BACKEND_URL\\\" app.tsx --bundle --outfile=public/app.js",
-    "typecheck": "node_modules/.bin/tsc --watch"
+    "build": "node build.js"
   },
   "devDependencies": {
-    "@types/node": "^16.11.12",
-    "@types/react": "^17.0.37",
-    "@types/react-dom": "^17.0.11",
-    "@types/thin-backend": "https://thin.dev/types/a1622a35-7994-47d8-8350-5a3909776fbc/zrOoZnckDdQyIKNUdHlWSwLWCTWIgNYC",
     "esbuild-plugin-elm": "^0.0.12"
   }
 }

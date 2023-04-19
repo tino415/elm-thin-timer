@@ -17,7 +17,6 @@ const watch = process.argv.includes('--watch')
 
 esbuild
   .build({
-    // entryPoints: ['./app.tsx'],
     entryPoints: ['./src/index.js'],
     bundle: true,
     outfile: 'public/app.js',
