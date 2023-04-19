@@ -2,6 +2,7 @@ port module ThinBackend exposing (..)
 
 import Json.Encode as E
 import Json.Decode as D
+import Json.Utils as JU
 
 type Direction = ASC | DESC
 
@@ -50,13 +51,10 @@ list : Query -> Cmd msg
 list qr = listPort (encodeQuery qr)
 
 listResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
-listResult decoder callback = listResultPort (maybeDecode decoder callback)
+listResult decoder callback = listResultPort (maybeDecodeCall decoder callback)
 
-maybeDecode : D.Decoder a -> (Maybe a -> msg) -> D.Value -> msg
-maybeDecode decoder callback value =
-    case D.decodeValue decoder value of
-        Ok decoded -> callback (Just decoded)
-        Err _ -> callback Nothing
+maybeDecodeCall : D.Decoder a -> (Maybe a -> msg) -> D.Value -> msg
+maybeDecodeCall decoder callback value = callback (JU.maybeDecode decoder value)
 
 port listPort : D.Value -> Cmd msg
 port listResultPort : (D.Value -> msg) -> Sub msg
@@ -65,7 +63,7 @@ subscribe : Query -> Cmd msg
 subscribe qr = subscribePort (encodeQuery qr)
 
 subscribeResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
-subscribeResult decoder callback = subscribeResultPort (maybeDecode decoder callback)
+subscribeResult decoder callback = subscribeResultPort (maybeDecodeCall decoder callback)
 
 port subscribePort : D.Value -> Cmd msg
 port subscribeResultPort : (D.Value -> msg) -> Sub msg
@@ -74,7 +72,7 @@ createRecord : String -> E.Value -> Cmd msg
 createRecord collection value = createRecordPort (encodeCreate collection value)
 
 createRecordResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
-createRecordResult decoder callback = createRecordResultPort (maybeDecode decoder callback)
+createRecordResult decoder callback = createRecordResultPort (maybeDecodeCall decoder callback)
 
 port createRecordPort : D.Value -> Cmd msg
 port createRecordResultPort : (D.Value -> msg) -> Sub msg
