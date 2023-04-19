@@ -3,8 +3,6 @@ port module ThinBackend exposing (..)
 import Json.Encode as E
 import Json.Decode as D
 
-type Void = Void
-
 type Direction = ASC | DESC
 
 type Value = IntValue Int | StringValue String
