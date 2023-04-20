@@ -11,8 +11,8 @@ import UI
 import Entry
 import UI.DateTime
 
-current : Maybe Entry.Entry -> Maybe Time.Posix -> H.Html msg
-current maybeEntry maybeNow =
+current : Maybe Entry.Entry -> Time.Zone -> Maybe Time.Posix -> H.Html msg
+current maybeEntry timeZone maybeNow =
     case (maybeEntry, maybeNow) of
         (Just entry, Just now) ->
           H.div
@@ -22,19 +22,23 @@ current maybeEntry maybeNow =
                   diff = UI.DateTime.diff now entry.at
               in
                   H.div []
-                      [ H.div [] [H.text ("Started at: " ++ (UI.DateTime.dateTime entry.at))]
-                      , H.div [] [H.text ("Running for " ++ (UI.DateTime.printDiff diff))]
+                      [ H.div []
+                          [ H.text ("Started at: " ++ (UI.DateTime.dateTime timeZone entry.at))
+                          ]
+                      , H.div []
+                          [ H.text ("Running for " ++ (UI.DateTime.printDiff diff))
+                          ]
                       ]
             ]
         _ -> UI.empty
 
-list : Bool -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
-list isProcessing deleteMsg redoMsg entries =
+list : Bool -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
+list isProcessing timeZone deleteMsg redoMsg entries =
     H.ul []
-        (List.map (listItem isProcessing deleteMsg redoMsg) entries)
+        (List.map (listItem isProcessing timeZone deleteMsg redoMsg) entries)
 
-listItem : Bool -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> Entry.Entry -> H.Html msg
-listItem isProcessing deleteMsg redoMsg entry =
+listItem : Bool -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> Entry.Entry -> H.Html msg
+listItem isProcessing timeZone deleteMsg redoMsg entry =
     H.li
         [
           A.css
@@ -55,7 +59,7 @@ listItem isProcessing deleteMsg redoMsg entry =
                [ Css.padding2 (Css.em 0.5) (Css.em 1)
                ]
             ]
-            [ H.text (UI.DateTime.dateTime entry.at) ]
+            [ H.text (UI.DateTime.dateTime timeZone entry.at) ]
         , if isProcessing
             then UI.empty
             else

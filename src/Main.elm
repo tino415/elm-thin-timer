@@ -7,7 +7,6 @@ import Time
 import Task
 import Iso8601
 import Json.Decode as D
-import Json.Encode as E
 import Html.Utils as HU
 
 import ThinBackend as T
@@ -31,6 +30,7 @@ type alias Model =
     , message : String
     , dateTime : Maybe Time.Posix
     , dateTimeString : String
+    , timeZone : Time.Zone
     , flash : Maybe UI.Flash
     , processing : Bool
     , currentEntry : Maybe Entry.Entry
@@ -48,10 +48,15 @@ init userValue =
         , message = ""
         , dateTime = Nothing
         , dateTimeString = ""
+        , timeZone = Time.utc
         , processing = False
         , flash = Nothing
         }
-      , Cmd.batch [initSubscribeEntries maybeUser, Task.perform SetTime Time.now]
+      , Cmd.batch
+         [ initSubscribeEntries maybeUser
+         , Task.perform SetTime Time.now
+         , Task.perform SetTimeZone Time.here
+         ]
       )
 
 initSubscribeEntries : Maybe User.User -> Cmd msg
@@ -70,6 +75,7 @@ type Msg
     | SetMessage String
     | SetDateTime String
     | SetTime Time.Posix
+    | SetTimeZone Time.Zone
     | CreateEntry
     | CreateEntryResult (Maybe Entry.Entry)
     | RedoEntry Entry.Entry
@@ -94,7 +100,15 @@ update msg model =
             ( { model | message = message }, Cmd.none )
 
         SetTime dateTime ->
-            ( { model | dateTime = Just dateTime, dateTimeString = HU.timeToString dateTime }
+            ( { model
+              | dateTime = Just dateTime
+              , dateTimeString = HU.timeToString model.timeZone dateTime
+              }
+            , Cmd.none
+            )
+
+        SetTimeZone zone ->
+            ( { model | timeZone = zone }
             , Cmd.none
             )
 
@@ -189,14 +203,9 @@ view model =
       , UI.Entry.createForm isActionable CreateEntry
           SetMessage model.message
           SetDateTime model.dateTimeString
-      , UI.Entry.current model.currentEntry model.dateTime
-      , UI.Entry.list model.processing DeleteEntry RedoEntry model.entries
+      , UI.Entry.current model.currentEntry model.timeZone model.dateTime
+      , UI.Entry.list model.processing model.timeZone DeleteEntry RedoEntry model.entries
       ]
-
-viewDefaultDatetime maybeDateTime =
-    case maybeDateTime of
-        Nothing -> ""
-        Just dateTime -> Iso8601.fromTime dateTime
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =

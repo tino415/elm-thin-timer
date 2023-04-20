@@ -9,9 +9,10 @@ type alias Flash = (FlashType, String)
 
 type FlashType = Success | Error
 
-colors : { info : Css.Color, success : Css.Color, danger : Css.Color }
+colors : { info : Css.Color, infoHover : Css.Color, success : Css.Color, danger : Css.Color }
 colors =
   { info = Css.rgb 61 165 244
+  , infoHover = Css.rgb 78 181 219
   , success = Css.rgb 44 228 104
   , danger = Css.rgb 229 88 94
   }
@@ -28,6 +29,10 @@ button msg content =
             , Css.borderWidth (Css.px 0)
             , Css.padding2 (Css.em 0.5) (Css.em 1)
             , Css.cursor Css.pointer
+            , Css.margin (Css.em 0.2)
+            , Css.hover
+                [ Css.backgroundColor colors.infoHover
+                ]
             ]
         ]
         [ H.text content ]

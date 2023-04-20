@@ -2,14 +2,14 @@ module UI.DateTime exposing (..)
 
 import Time
 
-dateTime : Time.Posix -> String
-dateTime time =
-    zeroPaddet(Time.toYear Time.utc time) ++ "-" ++
-    zeroPaddedMonth (Time.toMonth Time.utc time) ++ "-" ++
-    zeroPaddet (Time.toDay Time.utc time) ++ " " ++
-    zeroPaddet (Time.toHour Time.utc time) ++ ":" ++
-    zeroPaddet (Time.toMinute Time.utc time) ++ ":" ++
-    zeroPaddet (Time.toSecond Time.utc time)
+dateTime : Time.Zone -> Time.Posix -> String
+dateTime timeZone time =
+    zeroPaddet(Time.toYear timeZone time) ++ "-" ++
+    zeroPaddedMonth (Time.toMonth timeZone time) ++ "-" ++
+    zeroPaddet (Time.toDay timeZone time) ++ " " ++
+    zeroPaddet (Time.toHour timeZone time) ++ ":" ++
+    zeroPaddet (Time.toMinute timeZone time) ++ ":" ++
+    zeroPaddet (Time.toSecond timeZone time)
 
 diff : Time.Posix -> Time.Posix -> Int
 diff t1 t2 = Time.posixToMillis t1 - Time.posixToMillis t2
