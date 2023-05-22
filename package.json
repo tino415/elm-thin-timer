@@ -8,7 +8,7 @@
     "dotenv": "^10.0.0",
     "elm": "*",
     "esbuild": "^0.13.1",
-    "thin-backend": ">=0.10.1"
+    "parse": "^4.1.0"
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +17,7 @@
     "build": "node build.js"
   },
   "devDependencies": {
-    "esbuild-plugin-elm": "^0.0.12"
+    "esbuild-plugin-elm": "^0.0.12",
+    "events": "^3.3.0"
   }
 }

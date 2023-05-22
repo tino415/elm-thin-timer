@@ -37,6 +37,22 @@ button msg content =
         ]
         [ H.text content ]
 
+submitButton : String -> H.Html msg
+submitButton content =
+    H.button
+        [ A.css
+            [ Css.backgroundColor (colors.info)
+            , Css.borderWidth (Css.px 0)
+            , Css.padding2 (Css.em 0.5) (Css.em 1)
+            , Css.cursor Css.pointer
+            , Css.margin (Css.em 0.2)
+            , Css.hover
+                [ Css.backgroundColor colors.infoHover
+                ]
+            ]
+        ]
+        [ H.text content ]
+
 form : msg -> (List (H.Html msg)) -> H.Html msg
 form msg body =
     H.form
@@ -51,24 +67,29 @@ form msg body =
       body
 
 textInput : (String -> msg) -> String -> H.Html msg
-textInput event value =
-    H.input
-      [ A.type_ "text"
-      , A.value value
-      , E.onInput event
-      , A.css
-         [ Css.borderWidth (Css.px 1)
-         , Css.padding2 (Css.em 0.5) (Css.em 1)
-         , Css.borderColor colors.info
-         , Css.borderStyle Css.solid
-         ]
-      ]
-      []
+textInput = input "text"
+
+emailInput : (String -> msg) -> String -> H.Html msg
+emailInput = input "email"
+
+passwordInput : (String -> msg) -> String -> H.Html msg
+passwordInput = input "password"
 
 dateTimeInput : (String -> msg) -> String -> H.Html msg
-dateTimeInput event value =
+dateTimeInput = input "datetime-local"
+
+
+field : String -> H.Html msg -> H.Html msg
+field name input_ =
+    H.div []
+        [ H.label [A.css [Css.display Css.block]] [H.text name]
+        , input_
+        ]
+
+input : String -> (String -> msg) -> String -> H.Html msg
+input type_ event value =
     H.input
-      [ A.type_ "datetime-local"
+      [ A.type_ type_
       , A.value value
       , E.onInput event
       , A.css

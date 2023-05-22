@@ -27,6 +27,10 @@ main =
 
 type alias Model =
     { user : Maybe User.User
+    , authentication : UI.User.Authentication
+    , email : String
+    , password : String
+    , passwordVerify : String
     , message : String
     , dateTime : Maybe Time.Posix
     , dateTimeString : String
@@ -43,6 +47,10 @@ init userValue =
         maybeUser = User.maybeDecode userValue
     in 
       ( { user = maybeUser
+        , authentication = UI.User.Login
+        , email = ""
+        , password = ""
+        , passwordVerify = ""
         , currentEntry = Nothing
         , entries = []
         , message = ""
@@ -82,6 +90,13 @@ type Msg
     | DeleteEntry Entry.Entry
     | DeleteEntryResult (Maybe String)
     | FlashHide
+    | SubmitLogin
+    | SubmitRegistration
+    | SwitchToLogin
+    | SwitchToRegistration
+    | SetPassword String
+    | SetEmail String
+    | SetPasswordVerify String
     | NewEntries (Maybe (List Entry.Entry))
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -95,6 +110,27 @@ update msg model =
 
         Logedout ->
             ( { model | user = Nothing, entries = [] }, Cmd.none )
+
+        SubmitLogin ->
+            ( model, Cmd.none )
+
+        SubmitRegistration ->
+            ( model, Cmd.none )
+
+        SwitchToRegistration ->
+            ( { model | authentication = UI.User.Registration }, Cmd.none )
+
+        SwitchToLogin ->
+            ( { model | authentication = UI.User.Login }, Cmd.none )
+
+        SetEmail email ->
+            ( { model | email = email }, Cmd.none )
+
+        SetPassword password ->
+            ( { model | password = password }, Cmd.none )
+
+        SetPasswordVerify passwordVerify ->
+            ( { model | passwordVerify = passwordVerify }, Cmd.none )
 
         SetMessage message ->
             ( { model | message = message }, Cmd.none )
@@ -200,19 +236,37 @@ view model =
         ]
       , UI.maybeFlash model.flash FlashHide
       , UI.processing model.processing
-      , UI.Entry.createForm isActionable CreateEntry
-          SetMessage model.message
-          SetDateTime model.dateTimeString
-      , UI.Entry.current model.currentEntry model.timeZone model.dateTime
-      , UI.Entry.list model.processing model.timeZone DeleteEntry RedoEntry model.entries
+      , case model.user of
+            Just user ->
+              H.div []
+                  [ UI.Entry.createForm isActionable CreateEntry
+                       SetMessage model.message
+                       SetDateTime model.dateTimeString
+                  , UI.Entry.current model.currentEntry model.timeZone model.dateTime
+                  , UI.Entry.list model.processing model.timeZone DeleteEntry RedoEntry model.entries
+                  ]
+            Nothing ->
+               UI.User.authenticationForm
+                  model.authentication
+                  SubmitRegistration
+                  SubmitLogin
+                  SwitchToLogin
+                  SwitchToRegistration
+                  SetEmail
+                  model.email
+                  SetPassword
+                  model.password
+                  SetPasswordVerify
+                  model.passwordVerify
+                    
       ]
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.batch
-        [ T.logedout Logedout
-        , T.subscribeResult Entry.listDecoder NewEntries
-        , T.createRecordResult Entry.decoder CreateEntryResult
-        , T.deleteRecordResult DeleteEntryResult
-        , Time.every 60000 SetTime
-        ]
+  Sub.batch
+    [ T.logedout Logedout
+      , T.subscribeResult Entry.listDecoder NewEntries
+      , T.createRecordResult Entry.decoder CreateEntryResult
+      , T.deleteRecordResult DeleteEntryResult
+      , Time.every 60000 SetTime
+      ]
