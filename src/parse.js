@@ -1,4 +1,4 @@
-import * as Parse from 'parse';
+const Parse = require('parse');
 
 export function init(app) {
   if ("loginPort" in app.ports) {
@@ -43,17 +43,26 @@ export function init(app) {
 
   if ("createRecordPort" in app.ports) {
     app.ports.createRecordPort.subscribe(r => {
-      // createRecord(r.collection, r.record)
-        // .then(r => {
-          // if ("createRecordResultPort" in app.ports) {
-            // app.ports.createRecordResultPort.send(r)
-          // }
-        // })
-        // .catch(e => {
-          // if ("createRecordResultPort" in app.ports) {
-            // app.ports.createRecordResultPort.send(null)
-          // }
-        // })
+      console.log('record', r, Object.keys(r.record))
+      const entity = new Parse[r.collection]()
+
+      Object.keys(r.record).forEach(key => {
+        console.log('entity key', key, r.record[key])
+        entity.set(key, r.record[key])
+      })
+
+      entity.save()
+        .then(r => {
+          console.log('response', r)
+          if ("createRecordResultPort" in app.ports) {
+            app.ports.createRecordResultPort.send(r)
+          }
+        })
+        .catch(e => {
+          if ("createRecordResultPort" in app.ports) {
+            app.ports.createRecordResultPort.send(null)
+          }
+        })
     })
   }
 

@@ -15,6 +15,7 @@ import UI.Entry
 import UI.User
 import Entry
 import User
+import Registration
 
 main : Program D.Value Model Msg
 main =
@@ -28,6 +29,7 @@ main =
 type alias Model =
     { user : Maybe User.User
     , authentication : UI.User.Authentication
+    , username : String
     , email : String
     , password : String
     , passwordVerify : String
@@ -48,6 +50,7 @@ init userValue =
     in 
       ( { user = maybeUser
         , authentication = UI.User.Login
+        , username = ""
         , email = ""
         , password = ""
         , passwordVerify = ""
@@ -95,6 +98,7 @@ type Msg
     | SwitchToLogin
     | SwitchToRegistration
     | SetPassword String
+    | SetUsername String
     | SetEmail String
     | SetPasswordVerify String
     | NewEntries (Maybe (List Entry.Entry))
@@ -115,13 +119,20 @@ update msg model =
             ( model, Cmd.none )
 
         SubmitRegistration ->
-            ( model, Cmd.none )
+            ( model
+            , T.createRecord
+                  "User"
+                  (Registration.encodeNew model.username model.email model.password)
+            )
 
         SwitchToRegistration ->
             ( { model | authentication = UI.User.Registration }, Cmd.none )
 
         SwitchToLogin ->
             ( { model | authentication = UI.User.Login }, Cmd.none )
+
+        SetUsername username ->
+            ( { model | username = username }, Cmd.none )
 
         SetEmail email ->
             ( { model | email = email }, Cmd.none )
@@ -252,6 +263,8 @@ view model =
                   SubmitLogin
                   SwitchToLogin
                   SwitchToRegistration
+                  SetUsername
+                  model.username
                   SetEmail
                   model.email
                   SetPassword

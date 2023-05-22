@@ -15,6 +15,8 @@ async function main() {
     flags: null,
   });
 
+  init(app)
+
   // getCurrentUser().then(user => {
     // const app = Elm.Main.init({
       // node: $root,
