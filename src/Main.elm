@@ -32,10 +32,12 @@ type alias Model =
     , dateTimeString : String
     , timeZone : Time.Zone
     , flash : Maybe UI.Flash
-    , processing : Bool
+    , processing : Maybe Processing
     , currentEntry : Maybe Entry.Entry
     , entries : List Entry.Entry
     }
+
+type Processing = CreatingEntry | DeletingEntry | SigningIn
 
 init : D.Value -> ( Model, Cmd Msg )
 init userValue =
@@ -49,7 +51,7 @@ init userValue =
         , dateTime = Nothing
         , dateTimeString = ""
         , timeZone = Time.utc
-        , processing = False
+        , processing = Nothing
         , flash = Nothing
         }
       , Cmd.batch
@@ -69,8 +71,8 @@ subscribeEntries : String -> Cmd msg
 subscribeEntries userId = T.subscribe (Entry.query userId)
 
 type Msg
-    = Login
-    | Logout
+    -- = Login
+    = Logout
     | Logedout
     | SetMessage String
     | SetDateTime String
@@ -82,19 +84,74 @@ type Msg
     | DeleteEntry Entry.Entry
     | DeleteEntryResult (Maybe String)
     | FlashHide
+    | SubmitLogin
+    | SubmitRegistration
+    | RegistrationResult (Maybe Registration.Registration)
+    | SwitchToLogin
+    | SwitchToRegistration
+    | SetPassword String
+    | SetUsername String
+    | SetEmail String
+    | SetPasswordVerify String
     | NewEntries (Maybe (List Entry.Entry))
+    | Error String
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Login ->
-            ( model, T.login )
+        -- Login ->
+            -- ( model, T.login )
 
         Logout ->
             ( model, T.logout )
 
         Logedout ->
             ( { model | user = Nothing, entries = [] }, Cmd.none )
+
+        SubmitLogin ->
+            ( model
+            , T.login model.username model.password
+            )
+
+        SubmitRegistration ->
+            ( { model | processing = Just SigningIn }
+            , T.createRecord
+                  "User"
+                  (Registration.encodeNew model.username model.email model.password)
+            )
+        RegistrationResult (Just _) ->
+            ( { model
+              | flash = Just (UI.Success, "You have been registered, now you can login")
+              , processing = Nothing
+              , authentication = UI.User.Login
+              }
+            , Cmd.none
+            )
+        RegistrationResult Nothing ->
+            ( { model
+              | flash = Just (UI.Error, "Unable to register you")
+              , processing = Nothing
+              },
+              Cmd.none
+            )
+
+        SwitchToRegistration ->
+            ( { model | authentication = UI.User.Registration }, Cmd.none )
+
+        SwitchToLogin ->
+            ( { model | authentication = UI.User.Login }, Cmd.none )
+
+        SetUsername username ->
+            ( { model | username = username }, Cmd.none )
+
+        SetEmail email ->
+            ( { model | email = email }, Cmd.none )
+
+        SetPassword password ->
+            ( { model | password = password }, Cmd.none )
+
+        SetPasswordVerify passwordVerify ->
+            ( { model | passwordVerify = passwordVerify }, Cmd.none )
 
         SetMessage message ->
             ( { model | message = message }, Cmd.none )
@@ -124,7 +181,7 @@ update msg model =
         CreateEntry ->
             case model.dateTime of
                 Just dateTime ->
-                  ( { model | message = "", dateTimeString = "", processing = True }
+                  ( { model | message = "", dateTimeString = "", processing = Just CreatingEntry }
                   , T.createRecord "entries" (Entry.encodeNew model.message dateTime)
                   )
                 Nothing ->
@@ -133,7 +190,7 @@ update msg model =
         RedoEntry entry ->
             case model.dateTime of
                 Just dateTime ->
-                  ( { model | processing = True }
+                  ( { model | processing = Just CreatingEntry }
                   , T.createRecord "entries" (Entry.encodeNew entry.message dateTime)
                   )
                 Nothing ->
@@ -142,27 +199,27 @@ update msg model =
                   )
 
         CreateEntryResult (Just _) ->
-            ( { model | flash = Just (UI.Success, "Entry created"), processing = False }
+            ( { model | flash = Just (UI.Success, "Entry created"), processing = Nothing }
             , Cmd.none
             )
 
         CreateEntryResult Nothing ->
-            ( { model | flash = Just (UI.Error, "Entry creation failed"), processing = False }
+            ( { model | flash = Just (UI.Error, "Entry creation failed"), processing = Nothing }
             , Cmd.none
             )
 
         DeleteEntry entry ->
-            ( { model | processing = True }
+            ( { model | processing = Just DeletingEntry }
             , T.deleteRecord "entries" entry.id
             )
 
         DeleteEntryResult (Just _) ->
-            ( { model | flash = Just (UI.Success, "Entry deleted"), processing = False }
+            ( { model | flash = Just (UI.Success, "Entry deleted"), processing = Nothing }
             , Cmd.none
             )
 
         DeleteEntryResult Nothing ->
-            ( { model | flash = Just (UI.Error, "Failed to delete entry"), processing = False }
+            ( { model | flash = Just (UI.Error, "Failed to delete entry"), processing = Nothing }
             , Cmd.none
             )
 
@@ -182,6 +239,9 @@ update msg model =
         NewEntries Nothing ->
             ( model, Cmd.none )
 
+        Error info ->
+            ( { model | flash = Just (UI.Error, info) }, Cmd.none )
+
 postProcessEntries : List Entry.Entry -> List Entry.Entry
 postProcessEntries entries =
     entries
@@ -192,11 +252,11 @@ postProcessEntries entries =
 view : Model -> H.Html Msg
 view model =
   let
-    isActionable = model.processing || model.user == Nothing
+    isActionable = model.processing /= Nothing || model.user == Nothing
   in
     UI.layout
       [ UI.header
-        [ UI.User.header model.user Login Logout
+        [ UI.User.header model.user Logout
         ]
       , UI.maybeFlash model.flash FlashHide
       , UI.processing model.processing
@@ -208,11 +268,19 @@ view model =
       ]
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ T.logedout Logedout
-        , T.subscribeResult Entry.listDecoder NewEntries
-        , T.createRecordResult Entry.decoder CreateEntryResult
-        , T.deleteRecordResult DeleteEntryResult
-        , Time.every 60000 SetTime
-        ]
+subscriptions model =
+  Sub.batch
+    [ T.logedout Logedout
+      , T.subscribeResult Entry.listDecoder NewEntries
+      , createRecordSubscription model.processing
+      , Time.every 60000 SetTime
+      ]
+
+createRecordSubscription : Maybe Processing -> Sub Msg
+createRecordSubscription processing =
+  case processing of
+    Nothing -> Sub.none
+    Just CreatingEntry -> T.createRecordResult Entry.decoder CreateEntryResult
+    Just DeletingEntry -> T.deleteRecordResult DeleteEntryResult
+    Just SigningIn -> T.createRecordResult Registration.decoder RegistrationResult 
+        

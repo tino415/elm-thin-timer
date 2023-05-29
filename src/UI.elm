@@ -131,8 +131,8 @@ flashColor tp =
         Success -> colors.success
         Error -> colors.danger
 
-processing : Bool -> H.Html msg
+processing : Maybe a -> H.Html msg
 processing isProcessing =
-    if isProcessing
-        then H.div [][ H.text "Processing" ]
-        else empty
+    case isProcessing of
+        Nothing -> empty
+        Just _ -> H.div [][ H.text "Processing" ]

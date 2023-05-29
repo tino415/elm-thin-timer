@@ -5,10 +5,12 @@ import Html.Styled as H
 import User
 import UI
 
-header : Maybe User.User -> msg -> msg -> H.Html msg
-header maybeUser loginMsg logoutMsg =
+type Authentication = Login | Registration
+
+header : Maybe User.User -> msg -> H.Html msg
+header maybeUser logoutMsg =
     case maybeUser of
-        Nothing -> UI.button loginMsg "Login"
+        Nothing -> UI.empty
         Just user ->
             H.div []
                 [ H.div [] [ H.text user.email ]

@@ -32,12 +32,12 @@ current maybeEntry timeZone maybeNow =
             ]
         _ -> UI.empty
 
-list : Bool -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
+list : Maybe a -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> List Entry.Entry -> H.Html msg
 list isProcessing timeZone deleteMsg redoMsg entries =
     H.ul []
         (List.map (listItem isProcessing timeZone deleteMsg redoMsg) entries)
 
-listItem : Bool -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> Entry.Entry -> H.Html msg
+listItem : Maybe a -> Time.Zone -> (Entry.Entry -> msg) -> (Entry.Entry -> msg) -> Entry.Entry -> H.Html msg
 listItem isProcessing timeZone deleteMsg redoMsg entry =
     H.li
         [
@@ -60,9 +60,9 @@ listItem isProcessing timeZone deleteMsg redoMsg entry =
                ]
             ]
             [ H.text (UI.DateTime.dateTime timeZone entry.at) ]
-        , if isProcessing
-            then UI.empty
-            else
+        , case isProcessing of
+            Just _ -> UI.empty
+            Nothing ->
               H.div
                 []
                 [ UI.button (redoMsg entry) ">"

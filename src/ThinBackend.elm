@@ -86,10 +86,20 @@ deleteRecordResult callback = deleteRecordResultPort (decodeDelete callback)
 port deleteRecordPort : D.Value -> Cmd msg
 port deleteRecordResultPort : (D.Value -> msg) -> Sub msg
 
-login : Cmd msg
-login = loginPort E.null
+login : String -> String -> Cmd msg
+login username password =
+    loginPort
+        ( E.object
+            [ ( "username", E.string username)
+            , ( "password", E.string password)
+            ]
+        )
+
+loginResult : D.Decoder a -> (Maybe a -> msg) -> Sub msg
+loginResult decoder callback = loginResultPort (maybeDecodeCall decoder callback)
 
 port loginPort : E.Value -> Cmd msg
+port loginResultPort : (D.Value -> msg) -> Sub msg
 
 logout : Cmd msg
 logout = logoutPort E.null
