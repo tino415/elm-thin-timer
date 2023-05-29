@@ -7,7 +7,17 @@ import ElmPlugin from 'esbuild-plugin-elm';
 /* Want to hardcode your app url? Just modify this variable here */
 const BACKEND_URL = process.env.BACKEND_URL;
 if (!BACKEND_URL) {
-  throw new Error('The BACKEND_URL env variable is not set. Open the `.env` file and set the value. You can find the value in your Thin project settings. See https://thin.dev/docs/troubleshooting#BACKEND_URL if you need help.');
+  throw new Error('The BACKEND_URL env variable is not set');
+}
+
+const APP_ID = process.env.APP_ID
+if (!APP_ID) {
+  throw new Error('The APP_ID env variable is not set');
+}
+
+const JS_KEY = process.env.JS_KEY
+if (!JS_KEY) {
+  throw new Error('The JS_KEY env variable is not set');
 }
 
 const clients = []
@@ -23,7 +33,9 @@ esbuild
     banner: { js: ' (() => new EventSource("/esbuild").onmessage = () => location.reload())();' },
     define: {
       'process.env.NODE_ENV': JSON.stringify("development"),
-      'process.env.BACKEND_URL': JSON.stringify(BACKEND_URL)
+      'process.env.BACKEND_URL': JSON.stringify(BACKEND_URL),
+      'process.env.APP_ID': JSON.stringify(APP_ID),
+      'process.env.JS_KEY': JSON.stringify(JS_KEY)
     },
     watch: {
       onRebuild(error, result) {

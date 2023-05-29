@@ -15,6 +15,7 @@ import UI.Entry
 import UI.User
 import Entry
 import User
+import Registration
 
 main : Program D.Value Model Msg
 main =
@@ -27,6 +28,11 @@ main =
 
 type alias Model =
     { user : Maybe User.User
+    , authentication : UI.User.Authentication
+    , username : String
+    , email : String
+    , password : String
+    , passwordVerify : String
     , message : String
     , dateTime : Maybe Time.Posix
     , dateTimeString : String
@@ -45,6 +51,11 @@ init userValue =
         maybeUser = User.maybeDecode userValue
     in 
       ( { user = maybeUser
+        , authentication = UI.User.Login
+        , username = ""
+        , email = ""
+        , password = ""
+        , passwordVerify = ""
         , currentEntry = Nothing
         , entries = []
         , message = ""
@@ -260,11 +271,31 @@ view model =
         ]
       , UI.maybeFlash model.flash FlashHide
       , UI.processing model.processing
-      , UI.Entry.createForm isActionable CreateEntry
-          SetMessage model.message
-          SetDateTime model.dateTimeString
-      , UI.Entry.current model.currentEntry model.timeZone model.dateTime
-      , UI.Entry.list model.processing model.timeZone DeleteEntry RedoEntry model.entries
+      , case model.user of
+            Just user ->
+              H.div []
+                  [ UI.Entry.createForm isActionable CreateEntry
+                       SetMessage model.message
+                       SetDateTime model.dateTimeString
+                  , UI.Entry.current model.currentEntry model.timeZone model.dateTime
+                  , UI.Entry.list model.processing model.timeZone DeleteEntry RedoEntry model.entries
+                  ]
+            Nothing ->
+               UI.User.authenticationForm
+                  model.authentication
+                  SubmitRegistration
+                  SubmitLogin
+                  SwitchToLogin
+                  SwitchToRegistration
+                  SetUsername
+                  model.username
+                  SetEmail
+                  model.email
+                  SetPassword
+                  model.password
+                  SetPasswordVerify
+                  model.passwordVerify
+                    
       ]
 
 subscriptions : Model -> Sub Msg
