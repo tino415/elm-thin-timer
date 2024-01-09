@@ -3,3 +3,4 @@ public/app.js
 static/app.js
 /elm-stuff/
 /.env
+/.DS_Store

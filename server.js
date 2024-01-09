@@ -77,10 +77,4 @@ esbuild.serve({ servedir: './public', port: 3001 }, {}).then(() => {
   }).listen(3000)
 
   console.log('Development server running on http://localhost:3000')
-
-  setTimeout(() => {
-    const op = { darwin: ['open'], linux: ['xdg-open'], win32: ['cmd', '/c', 'start'] }
-    const ptf = process.platform
-    if (clients.length === 0) spawn(op[ptf][0], [...[op[ptf].slice(1)], `http://localhost:3000`])
-  }, 1000) //open the default browser only if it is not opened yet
 })

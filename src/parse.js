@@ -2,8 +2,8 @@ const Parse = require('parse');
 
 export function init(app) {
   if ("loginPort" in app.ports) {
-    app.ports.loginPort.subscribe(_ => {
-      console.log('loginWithRedirect requested')
+    app.ports.loginPort.subscribe(e => {  
+      console.log('loginWithRedirect requested', e)
     })
   }
 

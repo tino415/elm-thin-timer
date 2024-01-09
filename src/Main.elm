@@ -121,7 +121,7 @@ update msg model =
 
         SubmitLogin ->
             ( model
-            , T.login model.username model.password
+            , T.login model.email model.password
             )
 
         SubmitRegistration ->
